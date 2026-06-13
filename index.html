@@ -9,7 +9,6 @@
   --bg: #1a1a1a;
   --panel: #2a2a2a;
   --panel-light: #333;
-  --panel-hover: #3a3a3a;
   --border: #404040;
   --text: #e0e0e0;
   --text-dim: #888;
@@ -19,15 +18,6 @@
   --accent-purple: #9b59b6;
   --accent-cyan: #56c8d8;
   --accent-pink: #e85d75;
-  --accent-yellow: #f0c419;
-  --clip-red: #d9534f;
-  --clip-blue: #4a90d9;
-  --clip-green: #5cb85c;
-  --clip-orange: #f0ad4e;
-  --clip-purple: #9b59b6;
-  --clip-cyan: #56c8d8;
-  --clip-yellow: #f0c419;
-  --clip-pink: #e85d75;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -153,30 +143,20 @@ body {
 .section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 14px 24px;
   background: #232323;
   border-bottom: 1px solid #383838;
   border-top: 1px solid #383838;
 }
-.section-header .play-btn {
-  width: 28px; height: 28px;
-  background: var(--accent-green);
-  border-radius: 3px;
+.section-header .sh-icon {
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.section-header .play-btn:hover { background: #6ec96e; }
-.section-header .play-btn::after {
-  content: '';
-  width: 0; height: 0;
-  border-left: 8px solid #1a1a1a;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  margin-left: 2px;
+  font-size: 16px;
+  opacity: 0.7;
 }
 .section-header h2 {
   font-size: 16px;
@@ -190,69 +170,19 @@ body {
   color: var(--text-dim);
 }
 
-/* ============ SESSION VIEW GRID ============ */
-.session-view {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 0;
-  background: var(--bg);
-}
-
-/* Track headers */
-.track-header {
-  display: grid;
-  grid-template-columns: 220px repeat(auto-fit, minmax(120px, 1fr));
-}
-
-/* Track column */
-.track-col {
-  border-right: 1px solid #2a2a2a;
-  min-height: 100%;
-}
-.track-info {
-  padding: 10px 12px;
-  background: #252525;
-  border-bottom: 1px solid #333;
-  border-right: 1px solid #333;
-  height: 100%;
-}
-.track-info .t-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  margin-bottom: 4px;
-}
-.track-info .t-type {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-.track-info .t-badge {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 1px 6px;
-  font-size: 10px;
-  border-radius: 2px;
-  background: var(--panel-light);
-  color: var(--text-dim);
-}
-
 /* ============ PROJECT CARDS ============ */
 .projects {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 24px;
 }
-
 .project-card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
   margin-bottom: 24px;
   overflow: hidden;
-  transition: border-color 0.2s;
 }
-.project-card:hover { border-color: var(--text-dim); }
-
 .pc-header {
   display: flex;
   align-items: center;
@@ -283,45 +213,37 @@ body {
 .tag-mcp { background: rgba(74,144,217,0.2); color: var(--accent-blue); }
 .tag-python { background: rgba(240,173,78,0.2); color: var(--accent-orange); }
 .tag-ableton { background: rgba(232,93,117,0.2); color: var(--accent-pink); }
-
 .pc-body {
   padding: 20px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
-
 .pc-desc {
   font-size: 14px;
   color: var(--text-dim);
   line-height: 1.7;
 }
 .pc-desc strong { color: var(--text); }
-
-/* Feature clips */
 .pc-features {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-.feature-clip {
+.feature-item {
   padding: 10px 12px;
   border-radius: 4px;
   font-size: 12px;
-  cursor: default;
-  transition: transform 0.15s;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.feature-clip:hover { transform: scale(1.02); }
-.clip-1 { background: rgba(74,144,217,0.15); border-left: 3px solid var(--accent-blue); }
-.clip-2 { background: rgba(92,184,92,0.15); border-left: 3px solid var(--accent-green); }
-.clip-3 { background: rgba(240,173,78,0.15); border-left: 3px solid var(--accent-orange); }
-.clip-4 { background: rgba(155,89,182,0.15); border-left: 3px solid var(--accent-purple); }
-.clip-5 { background: rgba(86,200,216,0.15); border-left: 3px solid var(--accent-cyan); }
-.clip-6 { background: rgba(232,93,117,0.15); border-left: 3px solid var(--accent-pink); }
-
+.fi-1 { background: rgba(74,144,217,0.15); border-left: 3px solid var(--accent-blue); }
+.fi-2 { background: rgba(92,184,92,0.15); border-left: 3px solid var(--accent-green); }
+.fi-3 { background: rgba(240,173,78,0.15); border-left: 3px solid var(--accent-orange); }
+.fi-4 { background: rgba(155,89,182,0.15); border-left: 3px solid var(--accent-purple); }
+.fi-5 { background: rgba(86,200,216,0.15); border-left: 3px solid var(--accent-cyan); }
+.fi-6 { background: rgba(232,93,117,0.15); border-left: 3px solid var(--accent-pink); }
 .pc-footer {
   padding: 12px 20px;
   background: #222;
@@ -341,12 +263,11 @@ body {
   font-size: 13px;
   font-weight: 600;
   border-radius: 3px;
-  transition: all 0.15s;
+  transition: background 0.15s;
 }
-.pc-link:hover { background: #6ec96e; transform: scale(1.03); }
+.pc-link:hover { background: #6ec96e; }
 .pc-link.alt { background: var(--accent-blue); color: #fff; }
 .pc-link.alt:hover { background: #5a9de9; }
-
 .pc-stats {
   font-size: 12px;
   color: var(--text-dim);
@@ -354,8 +275,8 @@ body {
 }
 .pc-stats span { margin-right: 16px; }
 
-/* ============ WORKFLOW SECTION ============ */
-.workflow {
+/* ============ WORKFLOW ============ */
+.workflow-section {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 24px 60px;
@@ -415,6 +336,79 @@ body {
   color: var(--text-dim);
 }
 
+/* ============ TOOLS ============ */
+.tools-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 32px;
+}
+.tool-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+}
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.tool-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tool-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+.tool-list {
+  list-style: none;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.tool-list li {
+  padding: 3px 0;
+  border-bottom: 1px solid #333;
+}
+.tool-list li:last-child { border: none; }
+.tool-list code {
+  font-family: 'SF Mono', monospace;
+  font-size: 10px;
+  color: var(--accent-orange);
+}
+
+/* ============ INSTALL ============ */
+.install-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+.code-block {
+  background: #1a1a1a;
+  border-radius: 4px;
+  padding: 14px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #e0e0e0;
+  border: 1px solid #383838;
+  margin-bottom: 20px;
+}
+.code-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
 /* ============ FOOTER ============ */
 .footer {
   background: #111;
@@ -441,62 +435,6 @@ body {
 }
 .footer-links a:hover { color: var(--accent-orange); }
 
-/* ============ DEVICE CHAIN ============ */
-.device-chain {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 24px;
-}
-.devices {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-  padding: 8px 0;
-}
-.device {
-  min-width: 200px;
-  max-width: 240px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 14px;
-  flex-shrink: 0;
-  transition: transform 0.15s;
-}
-.device:hover { transform: translateY(-2px); }
-.device + .device { margin-left: 4px; border-left: none; }
-.device-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-.device-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.device-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-}
-.device-list {
-  list-style: none;
-  font-size: 11px;
-  color: var(--text-dim);
-}
-.device-list li {
-  padding: 3px 0;
-  border-bottom: 1px solid #333;
-}
-.device-list li:last-child { border: none; }
-.device-list code {
-  font-family: 'SF Mono', monospace;
-  font-size: 10px;
-  color: var(--accent-orange);
-}
-
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .hero h1 { font-size: 28px; }
@@ -505,8 +443,7 @@ body {
   .pc-features { grid-template-columns: 1fr; }
   .workflow-grid { grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
   .topbar-nav { display: none; }
-  .devices { flex-direction: column; }
-  .device { max-width: 100%; margin-left: 0 !important; }
+  .tools-grid { grid-template-columns: 1fr; }
 }
 
 /* ============ ANIMATIONS ============ */
@@ -520,7 +457,7 @@ body {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.project-card, .device, .workflow-step {
+.project-card, .tool-card, .workflow-step {
   animation: fadeIn 0.5s ease-out;
 }
 .workflow-step:nth-child(2) { animation-delay: 0.1s; }
@@ -531,7 +468,7 @@ body {
 </head>
 <body>
 
-<!-- TOP BAR (Ableton transport bar) -->
+<!-- TOP BAR -->
 <div class="topbar">
   <div class="topbar-logo">MCP <span>▸</span> Ableton Live</div>
   <nav class="topbar-nav">
@@ -562,14 +499,13 @@ body {
   </div>
 </div>
 
-<!-- PROJECTS (Session View style clips) -->
+<!-- PROJECTS -->
 <div id="projects">
   <div class="section-header">
-    <div class="play-btn"></div>
-    <h2>Session View — Projects</h2>
-    <div class="meta">2 tracks</div>
+    <div class="sh-icon">📦</div>
+    <h2>Projects</h2>
+    <div class="meta">2 repositories</div>
   </div>
-
   <div class="projects">
 
     <!-- sample-librarian -->
@@ -592,12 +528,12 @@ body {
           <p>Works <strong>standalone</strong> — Ableton integration is optional.</p>
         </div>
         <div class="pc-features">
-          <div class="feature-clip clip-1">🔍 SQLite + FTS5 BM25 search</div>
-          <div class="feature-clip clip-2">🎵 BPM / key / pitch detection</div>
-          <div class="feature-clip clip-3">🔁 Duplicate detection (4 axes)</div>
-          <div class="feature-clip clip-4">🎹 Camelot Wheel recommendations</div>
-          <div class="feature-clip clip-5">🤖 AI-enriched search results</div>
-          <div class="feature-clip clip-6">🥁 build_drum_rack_for_key()</div>
+          <div class="feature-item fi-1">🔍 SQLite + FTS5 BM25 search</div>
+          <div class="feature-item fi-2">🎵 BPM / key / pitch detection</div>
+          <div class="feature-item fi-3">🔁 Duplicate detection (4 axes)</div>
+          <div class="feature-item fi-4">🎹 Camelot Wheel recommendations</div>
+          <div class="feature-item fi-5">🤖 AI-enriched search results</div>
+          <div class="feature-item fi-6">🥁 build_drum_rack_for_key()</div>
         </div>
       </div>
       <div class="pc-footer">
@@ -632,12 +568,12 @@ body {
           (disabled by default, opt-in via env var).</p>
         </div>
         <div class="pc-features">
-          <div class="feature-clip clip-3">🎹 Create MIDI / audio tracks</div>
-          <div class="feature-clip clip-5">📝 Write MIDI notes to clips</div>
-          <div class="feature-clip clip-1">🔊 Import &amp; warp audio</div>
-          <div class="feature-clip clip-6">🥁 Drum Rack management</div>
-          <div class="feature-clip clip-2">↩️ Undo group support</div>
-          <div class="feature-clip clip-4">🔒 dry_run safe preview</div>
+          <div class="feature-item fi-3">🎹 Create MIDI / audio tracks</div>
+          <div class="feature-item fi-5">📝 Write MIDI notes to clips</div>
+          <div class="feature-item fi-1">🔊 Import &amp; warp audio</div>
+          <div class="feature-item fi-6">🥁 Drum Rack management</div>
+          <div class="feature-item fi-2">↩️ Undo group support</div>
+          <div class="feature-item fi-4">🔒 dry_run safe preview</div>
         </div>
       </div>
       <div class="pc-footer">
@@ -653,15 +589,14 @@ body {
   </div>
 </div>
 
-<!-- WORKFLOW (Transport / timeline style) -->
+<!-- WORKFLOW -->
 <div id="workflow">
   <div class="section-header">
-    <div class="play-btn"></div>
-    <h2>Workflow — From Folder to DAW</h2>
+    <div class="sh-icon">🔄</div>
+    <h2>How It Works</h2>
     <div class="meta">5 steps</div>
   </div>
-
-  <div class="workflow">
+  <div class="workflow-section">
     <div class="workflow-grid">
       <div class="workflow-step">
         <div class="ws-num">1</div>
@@ -697,23 +632,22 @@ body {
   </div>
 </div>
 
-<!-- DEVICE CHAIN (Ableton device rack style) -->
+<!-- TOOLS -->
 <div id="tools">
   <div class="section-header">
-    <div class="play-btn"></div>
-    <h2>Device Chain — MCP Tools</h2>
+    <div class="sh-icon">🛠️</div>
+    <h2>MCP Tools</h2>
     <div class="meta">9 + 30+ tools</div>
   </div>
+  <div class="tools-section">
+    <div class="tools-grid">
 
-  <div class="device-chain">
-    <div class="devices">
-
-      <div class="device">
-        <div class="device-header">
-          <div class="device-dot" style="background:var(--accent-blue)"></div>
-          <div class="device-title">Search</div>
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-dot" style="background:var(--accent-blue)"></div>
+          <div class="tool-title">Search</div>
         </div>
-        <ul class="device-list">
+        <ul class="tool-list">
           <li><code>librarian_search</code></li>
           <li>BM25 full-text search</li>
           <li>Filters: key, BPM, type</li>
@@ -721,12 +655,12 @@ body {
         </ul>
       </div>
 
-      <div class="device">
-        <div class="device-header">
-          <div class="device-dot" style="background:var(--accent-green)"></div>
-          <div class="device-title">Index</div>
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-dot" style="background:var(--accent-green)"></div>
+          <div class="tool-title">Index</div>
         </div>
-        <ul class="device-list">
+        <ul class="tool-list">
           <li><code>librarian_index</code></li>
           <li><code>librarian_add_root</code></li>
           <li>WAV / AIFF / MP3</li>
@@ -734,12 +668,12 @@ body {
         </ul>
       </div>
 
-      <div class="device">
-        <div class="device-header">
-          <div class="device-dot" style="background:var(--accent-orange)"></div>
-          <div class="device-title">Analyze</div>
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-dot" style="background:var(--accent-orange)"></div>
+          <div class="tool-title">Analyze</div>
         </div>
-        <ul class="device-list">
+        <ul class="tool-list">
           <li><code>librarian_analyze</code></li>
           <li>BPM / key / pitch</li>
           <li>Duplicate detection</li>
@@ -747,12 +681,12 @@ body {
         </ul>
       </div>
 
-      <div class="device">
-        <div class="device-header">
-          <div class="device-dot" style="background:var(--accent-purple)"></div>
-          <div class="device-title">Recommend</div>
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-dot" style="background:var(--accent-purple)"></div>
+          <div class="tool-title">Recommend</div>
         </div>
-        <ul class="device-list">
+        <ul class="tool-list">
           <li><code>librarian_recommend</code></li>
           <li>Camelot Wheel</li>
           <li>Harmonic compatibility</li>
@@ -760,12 +694,12 @@ body {
         </ul>
       </div>
 
-      <div class="device">
-        <div class="device-header">
-          <div class="device-dot" style="background:var(--accent-pink)"></div>
-          <div class="device-title">Live Bridge</div>
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-dot" style="background:var(--accent-pink)"></div>
+          <div class="tool-title">Live Bridge</div>
         </div>
-        <ul class="device-list">
+        <ul class="tool-list">
           <li><code>librarian_preview</code></li>
           <li><code>librarian_load_to_pad</code></li>
           <li>TCP → live-agent-remote</li>
@@ -773,12 +707,12 @@ body {
         </ul>
       </div>
 
-      <div class="device">
-        <div class="device-header">
-          <div class="device-dot" style="background:var(--accent-cyan)"></div>
-          <div class="device-title">Live Control</div>
+      <div class="tool-card">
+        <div class="tool-header">
+          <div class="tool-dot" style="background:var(--accent-cyan)"></div>
+          <div class="tool-title">Live Control</div>
         </div>
-        <ul class="device-list">
+        <ul class="tool-list">
           <li>Tracks / clips / MIDI</li>
           <li>Audio import &amp; warp</li>
           <li>Undo groups</li>
@@ -790,45 +724,40 @@ body {
   </div>
 </div>
 
-<!-- INSTALL (like a settings panel) -->
+<!-- INSTALL -->
 <div id="install">
   <div class="section-header">
-    <div class="play-btn"></div>
-    <h2>Preferences — Install</h2>
+    <div class="sh-icon">📥</div>
+    <h2>Get Started</h2>
     <div class="meta">2 servers</div>
   </div>
-
-  <div class="projects">
-    <div class="project-card">
-      <div class="pc-body" style="grid-template-columns:1fr;gap:16px;">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:12px;">sample-librarian</div>
-          <div style="background:#1a1a1a;border-radius:4px;padding:14px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:#e0e0e0;border:1px solid #383838;">
-            <span style="color:var(--accent-green)">$</span> git clone https://github.com/happytown-s/sample-librarian.git<br>
-            <span style="color:var(--accent-green)">$</span> cd sample-librarian && pip install -e .<br><br>
-            <span style="color:var(--text-dim)"># Add to your MCP client config:</span><br>
-            <span style="color:var(--accent-blue)">"mcpServers"</span>: {<br>
-            &nbsp;&nbsp;<span style="color:var(--accent-orange)">"sample-librarian"</span>: {<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"command"</span>: <span style="color:var(--accent-green)">"python"</span>,<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"args"</span>: [<span style="color:var(--accent-green)">"mcp_server.py"</span>]<br>
-            &nbsp;&nbsp;}<br>
-            }
-          </div>
-        </div>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:12px;">live-agent-remote</div>
-          <div style="background:#1a1a1a;border-radius:4px;padding:14px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:#e0e0e0;border:1px solid #383838;">
-            <span style="color:var(--accent-green)">$</span> git clone https://github.com/happytown-s/live-agent-remote.git<br>
-            <span style="color:var(--accent-green)">$</span> cd live-agent-remote && pip install -e .<br><br>
-            <span style="color:var(--text-dim)"># Requires LiveAgent Control Surface script in Ableton Live</span><br>
-            <span style="color:var(--accent-blue)">"mcpServers"</span>: {<br>
-            &nbsp;&nbsp;<span style="color:var(--accent-orange)">"liveagent"</span>: {<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"command"</span>: <span style="color:var(--accent-green)">"python"</span>,<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"args"</span>: [<span style="color:var(--accent-green)">"mcp_server.py"</span>]<br>
-            &nbsp;&nbsp;}<br>
-            }
-          </div>
-        </div>
+  <div class="install-section">
+    <div>
+      <div class="code-label">sample-librarian</div>
+      <div class="code-block">
+        <span style="color:var(--accent-green)">$</span> git clone https://github.com/happytown-s/sample-librarian.git<br>
+        <span style="color:var(--accent-green)">$</span> cd sample-librarian && pip install -e .<br><br>
+        <span style="color:var(--text-dim)"># Add to your MCP client config:</span><br>
+        <span style="color:var(--accent-blue)">"mcpServers"</span>: {<br>
+        &nbsp;&nbsp;<span style="color:var(--accent-orange)">"sample-librarian"</span>: {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"command"</span>: <span style="color:var(--accent-green)">"python"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"args"</span>: [<span style="color:var(--accent-green)">"mcp_server.py"</span>]<br>
+        &nbsp;&nbsp;}<br>
+        }
+      </div>
+    </div>
+    <div>
+      <div class="code-label">live-agent-remote</div>
+      <div class="code-block">
+        <span style="color:var(--accent-green)">$</span> git clone https://github.com/happytown-s/live-agent-remote.git<br>
+        <span style="color:var(--accent-green)">$</span> cd live-agent-remote && pip install -e .<br><br>
+        <span style="color:var(--text-dim)"># Requires LiveAgent Control Surface script in Ableton Live</span><br>
+        <span style="color:var(--accent-blue)">"mcpServers"</span>: {<br>
+        &nbsp;&nbsp;<span style="color:var(--accent-orange)">"liveagent"</span>: {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"command"</span>: <span style="color:var(--accent-green)">"python"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent-blue)">"args"</span>: [<span style="color:var(--accent-green)">"mcp_server.py"</span>]<br>
+        &nbsp;&nbsp;}<br>
+        }
       </div>
     </div>
   </div>
@@ -847,7 +776,7 @@ body {
 </div>
 
 <script>
-// BPM ticker animation
+// BPM ticker
 let bpm = 120.0;
 let direction = 0.1;
 setInterval(() => {
