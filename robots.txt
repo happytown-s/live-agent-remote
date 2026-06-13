@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://happytown-s.github.io/sample-librarian/sitemap.xml
