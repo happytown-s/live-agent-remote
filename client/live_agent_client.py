@@ -60,6 +60,26 @@ class LiveAgentClient:
     def list_tracks(self):
         return self._send("list_tracks")
 
+    def select_track(self, track_index):
+        return self._send("select_track", {"track_index": track_index})
+
+    def select_scene(self, scene_index):
+        return self._send("select_scene", {"scene_index": scene_index})
+
+    def select_clip(self, track_index, slot_index):
+        return self._send("select_clip", {
+            "track_index": track_index,
+            "slot_index": slot_index,
+        })
+
+    def select_device(self, track_index, device_index=None, device_name=None):
+        payload = {"track_index": track_index}
+        if device_index is not None:
+            payload["device_index"] = device_index
+        if device_name:
+            payload["device_name"] = device_name
+        return self._send("select_device", payload)
+
     # ── Transport & Playback ───────────────────────────────────
 
     def get_transport_state(self):
@@ -73,6 +93,15 @@ class LiveAgentClient:
 
     def stop_all_clips(self):
         return self._send("stop_all_clips")
+
+    def stop_clip(self, track_index, slot_index):
+        return self._send("stop_clip", {
+            "track_index": track_index,
+            "slot_index": slot_index,
+        })
+
+    def stop_track_clips(self, track_index):
+        return self._send("stop_track_clips", {"track_index": track_index})
 
     def set_tempo(self, tempo):
         return self._send("set_tempo", {"tempo": tempo})
@@ -130,6 +159,38 @@ class LiveAgentClient:
 
     def create_midi_track(self, index=-1):
         return self._send("create_midi_track", {"index": index})
+
+    def set_track_name(self, track_index, name):
+        return self._send("set_track_name", {"track_index": track_index, "name": name})
+
+    def set_track_color(self, track_index, color):
+        return self._send("set_track_color", {"track_index": track_index, "color": color})
+
+    def duplicate_track(self, track_index):
+        return self._send("duplicate_track", {"track_index": track_index})
+
+    def delete_track(self, track_index):
+        return self._send("delete_track", {"track_index": track_index})
+
+    def create_scene(self, index=-1, name="", color=None):
+        payload = {"index": index}
+        if name:
+            payload["name"] = name
+        if color is not None:
+            payload["color"] = color
+        return self._send("create_scene", payload)
+
+    def set_scene_name(self, scene_index, name):
+        return self._send("set_scene_name", {"scene_index": scene_index, "name": name})
+
+    def set_scene_color(self, scene_index, color):
+        return self._send("set_scene_color", {"scene_index": scene_index, "color": color})
+
+    def duplicate_scene(self, scene_index):
+        return self._send("duplicate_scene", {"scene_index": scene_index})
+
+    def delete_scene(self, scene_index):
+        return self._send("delete_scene", {"scene_index": scene_index})
 
     def create_session_clip(self, track_index, slot_index, length_beats=16,
                             name="", color=None, replace=True):
@@ -267,19 +328,57 @@ class LiveAgentClient:
 
     # ── Drum Rack Commands ──────────────────────────────────
 
-    def create_drum_rack(self, track_index=-1, name="Drum Rack"):
+    def create_drum_rack(self, track_index=-1, name="Drum Rack",
+                         kit_name="808 Core Kit.adg", empty=False):
         return self._send("create_drum_rack", {
             "track_index": track_index,
             "name": name,
+            "kit_name": kit_name,
+            "empty": empty,
         })
 
-    def load_sample_to_pad(self, track_index, pad_index, file_path, drum_rack_index=0):
-        return self._send("load_sample_to_pad", {
+    def load_sample_to_pad(self, track_index, pad_index, file_path,
+                           pad_name=None,
+                           drum_rack_index=0, reset_effects=False):
+        payload = {
             "track_index": track_index,
             "pad_index": pad_index,
             "file_path": file_path,
             "drum_rack_index": drum_rack_index,
+            "reset_effects": reset_effects,
+        }
+        if pad_name is not None:
+            payload["pad_name"] = pad_name
+        return self._send("load_sample_to_pad", payload)
+
+    def set_drum_pad_name(self, track_index, pad_index, pad_name, drum_rack_index=0):
+        return self._send("set_drum_pad_name", {
+            "track_index": track_index,
+            "pad_index": pad_index,
+            "pad_name": pad_name,
+            "drum_rack_index": drum_rack_index,
         })
+
+    def inspect_drum_rack(self, track_index, drum_rack_index=0, pad_range=None):
+        payload = {
+            "track_index": track_index,
+            "drum_rack_index": drum_rack_index,
+        }
+        if pad_range is not None:
+            payload["pad_range"] = pad_range
+        return self._send("inspect_drum_rack", payload)
+
+    def analyze_and_warp(self, track_index, slot_index, bpm=None, key=None, warp_mode=4):
+        payload = {
+            "track_index": track_index,
+            "slot_index": slot_index,
+            "warp_mode": warp_mode,
+        }
+        if bpm is not None:
+            payload["bpm"] = bpm
+        if key is not None:
+            payload["key"] = key
+        return self._send("analyze_and_warp", payload)
 
     # ── lifecycle ──────────────────────────────────────────────
 

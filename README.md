@@ -136,10 +136,16 @@ echo '{"command":"ping"}' | nc 127.0.0.1 8765
 | `ping` | Check if Ableton Live is connected and responding via LiveAgent | — |
 | `get_live_state` | Get the full state of Ableton Live: tempo, tracks, scenes, playing status, selected track | — |
 | `list_tracks` | List all tracks in the current Ableton Live set with their devices, clips, and settings | — |
+| `select_track` | Select a track in Ableton Live's UI so subsequent browser/device operations target it | `track_index`* (integer) |
+| `select_scene` | Select a scene in Ableton Live's session view | `scene_index`* (integer) |
+| `select_clip` | Select a clip by track and session slot, focusing it in the detail view when Live exposes that se... | `slot_index`* (integer), `track_index`* (integer) |
+| `select_device` | Select a device on a track by index or name, useful before hotswap and browser operations | `device_index` (integer), `device_name` (string), `track_index`* (integer) |
 | `get_transport_state` | Get transport state: tempo, playing status, time signature, metronome, overdub | — |
 | `start_playing` | Start playback of the Ableton Live transport | — |
 | `stop_playing` | Stop playback of the Ableton Live transport | — |
 | `stop_all_clips` | Stop all currently playing clips in the session view | — |
+| `stop_clip` | Stop a specific clip slot without stopping other clips | `slot_index`* (integer), `track_index`* (integer) |
+| `stop_track_clips` | Stop all clips playing on one track without stopping the rest of the set | `track_index`* (integer) |
 | `set_tempo` | Set the project tempo (BPM) | `tempo`* (number) |
 | `tap_tempo` | Tap the tempo. Call repeatedly in rhythm to set the tempo by tapping | — |
 | `set_time_signature` | Set the time signature (e.g. 4/4, 3/4, 6/8) | `denominator` (integer), `numerator` (integer) |
@@ -156,6 +162,15 @@ echo '{"command":"ping"}' | nc 127.0.0.1 8765
 | `set_track_monitoring` | Set a track's monitoring state: 0=In, 1=Auto, 2=Off | `monitoring`* (integer), `track_index`* (integer) |
 | `set_crossfader` | Set the master crossfader position (-1.0 = A, 0.0 = center, 1.0 = B) | `position`* (number) |
 | `create_midi_track` | Create a new MIDI track in Ableton Live | `index` (integer) |
+| `set_track_name` | Rename a track | `name`* (string), `track_index`* (integer) |
+| `set_track_color` | Set a track color using Ableton's integer RGB color value | `color`* (integer), `track_index`* (integer) |
+| `duplicate_track` | Duplicate a track, including its devices and clips | `track_index`* (integer) |
+| `delete_track` | Delete a track from the Live set | `track_index`* (integer) |
+| `create_scene` | Create a new scene in session view | `color` (integer), `index` (integer), `name` (string) |
+| `set_scene_name` | Rename a scene | `name`* (string), `scene_index`* (integer) |
+| `set_scene_color` | Set a scene color using Ableton's integer RGB color value | `color`* (integer), `scene_index`* (integer) |
+| `duplicate_scene` | Duplicate a scene in session view | `scene_index`* (integer) |
+| `delete_scene` | Delete a scene from the Live set | `scene_index`* (integer) |
 | `create_session_clip` | Create a new MIDI clip in session view on a specific track and slot | `length_beats` (number), `name` (string), `replace` (boolean), `slot_index`* (integer), `track_index`* (integer) |
 | `write_midi_notes` | Write MIDI notes to a clip. Notes are specified as an array of {pitch, start, duration, velocity} | `notes`* (array), `slot_index`* (integer), `track_index`* (integer) |
 | `read_clip_notes` | Read all MIDI notes from a clip | `length_beats` (number), `slot_index`* (integer), `track_index`* (integer) |
@@ -179,7 +194,8 @@ echo '{"command":"ping"}' | nc 127.0.0.1 8765
 | `find_compatible_samples` | Find samples in a folder that are harmonically compatible with a target key using the Camelot Whe... | `folder_path`* (string), `mode` (string), `target_key`* (string) |
 | `create_smart_folder` | Create a smart folder in Ableton's browser with symlinks to samples that are harmonically compati... | `base_path` (string), `categories` (array), `target_key`* (string) |
 | `create_drum_rack` | Create a MIDI track with a usable Drum Rack. By default loads 808 Core Kit.adg so pads 36-51 alre... | `empty` (boolean), `kit_name` (string), `name` (string), `track_index` (integer) |
-| `load_sample_to_pad` | Load a browser-indexed sample file onto a Drum Rack pad by loading it as a Simpler then moving it... | `drum_rack_index` (integer), `file_path`* (string), `pad_index`* (integer), `reset_effects` (boolean), `track_index`* (integer) |
+| `load_sample_to_pad` | Load a browser-indexed sample file onto a Drum Rack pad by loading it as a Simpler then moving it... | `drum_rack_index` (integer), `file_path`* (string), `pad_index`* (integer), `pad_name` (string), `reset_effects` (boolean), `track_index`* (integer) |
+| `set_drum_pad_name` | Rename a Drum Rack pad without loading a new sample. Use after librarian_search/librarian_load_to... | `drum_rack_index` (integer), `pad_index`* (integer), `pad_name`* (string), `track_index`* (integer) |
 | `inspect_drum_rack` | Inspect a Drum Rack's pad structure. Returns pad names, active state, chain devices, and sample f... | `drum_rack_index` (integer), `pad_range` (array), `track_index`* (integer) |
 | `eval` | Evaluate a Python expression in LiveAgent's Ableton Live context. Returns the result. Available v... | `expr`* (string) |
 | `exec` | Execute a Python statement in LiveAgent's Ableton Live context. Available variables: Live, song, ... | `stmt`* (string) |
@@ -332,7 +348,7 @@ python3 -m venv .venv
 }
 ```
 
-3. Restart your MCP client. All <!-- COMMAND COUNT:51 --> commands are now available as tools!
+3. Restart your MCP client. All <!-- COMMAND COUNT:67 --> commands are now available as tools!
 
 ---
 

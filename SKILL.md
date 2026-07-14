@@ -1,7 +1,6 @@
 ---
 name: liveagent-remote
-description: Control Ableton Live via LiveAgent Remote — MCP tools or TCP socket (127.0.0.1:8765). Create MIDI clips, write notes, manage tracks, load devices, control Drum Racks, analyze audio. Works with any AI agent that supports MCP or TCP.
-version: 3.0
+description: Control Ableton Live via LiveAgent Remote — MCP tools or TCP socket (127.0.0.1:8765). Create MIDI clips, write notes, manage tracks, load devices, control Drum Racks, load Sample Librarian search results into kits, rename pads, analyze audio, and handle Ableton save/crash/restart popups. Works with any AI agent that supports MCP or TCP.
 ---
 
 # LiveAgent Remote — Ableton Live Control for AI Agents
@@ -52,14 +51,74 @@ open -a "Ableton Live 11 Standard"
 ```
 Then wait 15-30 seconds and retry.
 
-## Available MCP Tools (31 total)
+### Save/Crash Popup Handling
+
+Ableton can block LiveAgent initialization with modal dialogs after quit, crash,
+or Remote Script reload attempts. Always inspect the UI before assuming
+LiveAgent is broken.
+
+- If a save dialog appears (`Save changes?`, Japanese UI: `閉じる前に...保存しますか?`), do not click `Save` or `Don't Save` unless the user explicitly approved that choice for the current set. Press `Esc` / `Cancel` to back out if the dialog was opened by accident.
+- If a crash recovery dialog appears, report the exact options. Do not discard or overwrite a recovered set without explicit user direction.
+- Do not force-quit Ableton just to reload a script when the set may contain unsaved user work.
+- After any modal is dismissed, wait 10-20 seconds and retry `mcp_liveagent_ping`.
+- If the screen is locked, global coordinate clicks may not work. Prefer app accessibility state and keyboard actions; ask the user to unlock or choose the save/recovery option when needed.
+
+Remote Script reload checklist:
+```bash
+cp LiveAgent/LiveAgent.py "/Applications/Ableton Live 11 Standard.app/Contents/App-Resources/MIDI Remote Scripts/LiveAgent/LiveAgent.py"
+rm -rf "/Applications/Ableton Live 11 Standard.app/Contents/App-Resources/MIDI Remote Scripts/LiveAgent/__pycache__"
+```
+Then reselect the LiveAgent Control Surface or restart Ableton. If restart shows
+a save dialog, stop and ask for the user's save/discard decision.
+
+## Available MCP Tools (67 total)
 
 ### Session
 - `mcp_liveagent_ping` — Check connection
 - `mcp_liveagent_get_live_state` — Tempo, tracks, scenes, playing state
 - `mcp_liveagent_list_tracks` — All tracks with devices and clips
+- `mcp_liveagent_get_transport_state` — Transport state and song time
+- `mcp_liveagent_select_track` — Select a track in Live's UI
+- `mcp_liveagent_select_scene` — Select a scene
+- `mcp_liveagent_select_clip` — Select/focus a clip
+- `mcp_liveagent_select_device` — Select a device on a track
 - `mcp_liveagent_eval` — Evaluate Python expression in LOM context (debug/exploration)
 - `mcp_liveagent_exec` — Execute Python statement in LOM context (assignments)
+
+### Transport
+- `mcp_liveagent_start_playing` — Start playback
+- `mcp_liveagent_stop_playing` — Stop playback
+- `mcp_liveagent_stop_all_clips` — Stop all session clips
+- `mcp_liveagent_stop_clip` — Stop one clip slot
+- `mcp_liveagent_stop_track_clips` — Stop clips on one track
+- `mcp_liveagent_set_tempo` — Set BPM
+- `mcp_liveagent_tap_tempo` — Tap tempo
+- `mcp_liveagent_set_time_signature` — Set time signature
+- `mcp_liveagent_set_metronome` — Toggle metronome
+- `mcp_liveagent_set_overdub` — Toggle MIDI overdub
+- `mcp_liveagent_launch_scene` — Launch a scene
+- `mcp_liveagent_launch_clip` — Launch one clip
+
+### Mixer
+- `mcp_liveagent_set_track_volume` — Set track volume
+- `mcp_liveagent_set_track_pan` — Set track pan
+- `mcp_liveagent_set_track_mute` — Mute/unmute track
+- `mcp_liveagent_set_track_solo` — Solo/unsolo track
+- `mcp_liveagent_set_track_arm` — Arm/disarm track
+- `mcp_liveagent_set_track_send` — Set send level
+- `mcp_liveagent_set_track_monitoring` — Set monitoring state
+- `mcp_liveagent_set_crossfader` — Set master crossfader
+
+### Track & Scene Organization
+- `mcp_liveagent_set_track_name` — Rename track
+- `mcp_liveagent_set_track_color` — Set track color
+- `mcp_liveagent_duplicate_track` — Duplicate track
+- `mcp_liveagent_delete_track` — Delete track
+- `mcp_liveagent_create_scene` — Create scene
+- `mcp_liveagent_set_scene_name` — Rename scene
+- `mcp_liveagent_set_scene_color` — Set scene color
+- `mcp_liveagent_duplicate_scene` — Duplicate scene
+- `mcp_liveagent_delete_scene` — Delete scene
 
 ### MIDI
 - `mcp_liveagent_create_midi_track` — Create MIDI track at index (-1 = end)
@@ -87,7 +146,8 @@ Then wait 15-30 seconds and retry.
 
 ### Drum Rack
 - `mcp_liveagent_create_drum_rack` — Create Drum Rack on MIDI track
-- `mcp_liveagent_load_sample_to_pad` — Load sample onto Drum Rack pad
+- `mcp_liveagent_load_sample_to_pad` — Load sample onto Drum Rack pad; pass `pad_name` to label the pad at load time
+- `mcp_liveagent_set_drum_pad_name` — Rename a Drum Rack pad without loading a sample
 - `mcp_liveagent_inspect_drum_rack` — Debug: inspect pad structure
 
 ### Audio Analysis (librosa, standalone)
@@ -96,6 +156,9 @@ Then wait 15-30 seconds and retry.
 - `mcp_liveagent_analyze_folder` — Batch analyze folder (pitch, BPM, key)
 - `mcp_liveagent_find_compatible_samples` — Camelot Wheel key matching
 - `mcp_liveagent_create_smart_folder` — Generate key-matched symlink folder
+
+### Advanced / Batching
+- `mcp_liveagent_batch` — Execute multiple LiveAgent commands as one undo step
 
 ## MIDI Note Format
 
@@ -268,7 +331,47 @@ browser.load_item(sample)  # swaps sample IN the Simpler, Rack survives!
 browser.hotswap_target = None
 ```
 
-The `load_sample_to_pad` MCP tool handles all of this automatically.
+The `load_sample_to_pad` MCP tool handles sample replacement automatically.
+For normal agent work, prefer the MCP tool over hand-written LOM hotswap code.
+
+### Loading Search Results as a Named Kit
+
+Use this path when Sample Librarian returns search results that should become a
+Live Drum Rack kit:
+
+1. Create a usable template rack, not an empty rack:
+   ```python
+   mcp_liveagent_create_drum_rack(name="Sample Librarian Kit", kit_name="808 Core Kit.adg")
+   ```
+2. Map results to MIDI pads. Common defaults: Kick=36, Snare=38, Clap=39, Percussion=40, Closed Hat=42, Shaker=44, Open Hat=46, Crash=49.
+3. Load each sample with a visible pad label:
+   ```python
+   mcp_liveagent_load_sample_to_pad(
+       track_index=T,
+       pad_index=36,
+       file_path="/absolute/path/kick.wav",
+       pad_name="Kick C",
+   )
+   ```
+4. Rename without replacing the sample when needed:
+   ```python
+   mcp_liveagent_set_drum_pad_name(track_index=T, pad_index=36, pad_name="Kick C")
+   ```
+5. Verify with `mcp_liveagent_inspect_drum_rack(track_index=T, pad_range=[36, 52])`.
+   Check both `name` and `chain_name`; Live versions differ on which one drives
+   the visible pad label.
+
+Sample Librarian bridge support:
+- `librarian.live_agent_bridge.load_to_drum_pad(..., pad_name="...")` forwards `pad_name`.
+- `build_drum_rack_for_key()` passes each selected sample's `name` as `pad_name`.
+- If a user provides raw search results, use the result `name` for `pad_name` unless they request shorter role labels.
+
+After changing pad-name code in `LiveAgent.py`, reload the Control Surface and run:
+```bash
+python tools/liveagent_pad_name_smoke.py
+```
+This creates a temporary Drum Rack, loads a temporary WAV onto pad 36, verifies
+`pad_name`, verifies `set_drum_pad_name`, then deletes the temporary track.
 
 ## Audio Analysis
 
@@ -306,8 +409,8 @@ Results are persisted to `.analysis_cache/` as per-file JSON (keyed by path + mt
 
 1. Run `find_compatible_samples(folder_path=category_dir, target_key="Fm", mode="pitch")` per category
 2. Select best match per pad role (highest confidence, correct pitch range)
-3. Load via `load_sample_to_pad(track_index, pad_index, file_path)`
-4. Verify via eval: `song.tracks[T].devices[0].drum_pads[PAD].chains[0].devices[0].name`
+3. Load via `load_sample_to_pad(track_index, pad_index, file_path, pad_name=sample_name)`
+4. Verify via `inspect_drum_rack`; accept either `name` or `chain_name` matching the requested pad label
 
 ## Configuration
 
@@ -382,6 +485,9 @@ Args: [<repo>/mcp_server.py]
 - Port 8765 only available while Ableton is running with LiveAgent active
 - After Ableton launches, wait 15-30 seconds before connecting
 - Killing Ableton may leave a "Save changes?" popup that blocks LiveAgent init
+- Copying `LiveAgent.py` into MIDI Remote Scripts does not update the already-running script; reselect the Control Surface or restart Ableton
+- If a new command returns `Unknown command` after copying the file, the running Live process still has the old Remote Script loaded
+- Never choose `Save` / `Don't Save` in a Live modal unless the user has approved that exact action for the current set
 
 ### Browser
 - **`song.browser` does NOT exist** — use `app.browser` via `Live.Application.get_application().browser`
@@ -397,6 +503,7 @@ Args: [<repo>/mcp_server.py]
 - **`drum_pads[N].chains` is READ-ONLY** — cannot append to empty pads
 - **`copy_pad` works** but copied pads may reject `hotswap_target` — test empirically
 - **`browser.load_item` on MIDI tracks DESTROYS Drum Rack** — use `hotswap_target` technique instead
+- **Pad names may surface as `name` or `chain_name`** — check both after `pad_name` / `set_drum_pad_name`
 - **Recovery: `song.undo()`** reverses accidental load_item replacements
 
 ### VST Plugins
@@ -418,7 +525,7 @@ Args: [<repo>/mcp_server.py]
 ### General
 - **Track indices are 0-based** — track 0 = first track
 - **Clip slots are 0-based** — slot 0 = first clip slot
-- **No undo over TCP bridge** — operations are immediate
+- **Single TCP commands are immediate** — use `batch` when multiple mutations should share one undo step
 - **`write_midi_notes` — always use `slot_index`** (not `clip_slot_index`)
 - **MCP `inputSchema` required on ALL tools** — even zero-arg tools like `ping`
 - **Large note arrays** — for 200+ notes, write JSON to temp file first (shell arg limits)

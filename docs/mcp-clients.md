@@ -284,14 +284,15 @@ Most MCP clients follow the same JSON schema:
 Once connected, the following tools are exposed:
 
 <!-- BEGIN TOOL GROUPS -->
-- **Session & State:** `ping`, `get_live_state`, `list_tracks`, `get_transport_state`
-- **Transport:** `start_playing`, `stop_playing`, `stop_all_clips`, `set_tempo`, `tap_tempo`, `set_time_signature`, `set_metronome`, `set_overdub`, `launch_scene`, `launch_clip`
+- **Session & State:** `ping`, `get_live_state`, `list_tracks`, `get_transport_state`, `select_track`, `select_scene`, `select_clip`, `select_device`
+- **Transport:** `start_playing`, `stop_playing`, `stop_all_clips`, `stop_clip`, `stop_track_clips`, `set_tempo`, `tap_tempo`, `set_time_signature`, `set_metronome`, `set_overdub`, `launch_scene`, `launch_clip`
 - **Mixer:** `set_track_volume`, `set_track_pan`, `set_track_mute`, `set_track_solo`, `set_track_arm`, `set_track_send`, `set_track_monitoring`, `set_crossfader`
+- **Track & Scene Organization:** `set_track_name`, `set_track_color`, `duplicate_track`, `delete_track`, `create_scene`, `set_scene_name`, `set_scene_color`, `duplicate_scene`, `delete_scene`
 - **MIDI:** `create_midi_track`, `create_session_clip`, `write_midi_notes`, `read_clip_notes`, `clear_clip_notes`
 - **Devices & Parameters:** `list_devices`, `set_parameter_value`, `write_clip_automation`, `load_device`, `list_browser_devices`
 - **Audio Clips:** `create_audio_track`, `import_audio_clip`, `get_clip_info`, `set_clip_properties`, `duplicate_clip`, `delete_clip`, `set_clip_warp`, `analyze_and_warp`
 - **Audio Analysis (standalone, no Live needed):** `analyze_audio_file`, `detect_pitch`, `analyze_folder`, `find_compatible_samples`, `create_smart_folder`
-- **Drum Rack:** `create_drum_rack`, `load_sample_to_pad`, `inspect_drum_rack`
+- **Drum Rack:** `create_drum_rack`, `load_sample_to_pad`, `set_drum_pad_name`, `inspect_drum_rack`
 - **Advanced / Batching:** `batch`, `eval`, `exec`
 <!-- END TOOL GROUPS -->
 

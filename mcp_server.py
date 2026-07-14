@@ -89,6 +89,22 @@ DRY_RUN_SCHEMA = {
 #   1. call_tool() intercepts dry_run=True for these names (preview only).
 #   2. _inject_dry_run() adds the dry_run property to their inputSchema.
 DESTRUCTIVE_TOOLS = {
+    "create_midi_track": lambda a: {
+        "would_do": "Create MIDI track",
+        "target": f"Index {a.get('index', -1)}",
+    },
+    "create_audio_track": lambda a: {
+        "would_do": "Create audio track",
+        "target": f"Index {a.get('index', -1)}",
+    },
+    "create_session_clip": lambda a: {
+        "would_do": f"Create MIDI clip length={a.get('length_beats', 16)}",
+        "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
+    },
+    "duplicate_clip": lambda a: {
+        "would_do": "Duplicate clip",
+        "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
+    },
     "delete_clip": lambda a: {
         "would_do": "Delete clip",
         "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
@@ -106,8 +122,23 @@ DESTRUCTIVE_TOOLS = {
         "target": f"Track {a.get('track_index')} ({a.get('browser_type', 'plug-in')})",
     },
     "load_sample_to_pad": lambda a: {
-        "would_do": f"Load sample to pad {a.get('pad_index')}",
+        "would_do": (
+            f"Load sample to pad {a.get('pad_index')}"
+            + (f" and rename it to '{a.get('pad_name')}'" if a.get("pad_name") else "")
+        ),
         "target": f"Track {a.get('track_index')} / Pad {a.get('pad_index')} / {a.get('file_path', '?')}",
+    },
+    "set_drum_pad_name": lambda a: {
+        "would_do": f"Rename Drum Rack pad {a.get('pad_index')} to '{a.get('pad_name')}'",
+        "target": f"Track {a.get('track_index')} / Pad {a.get('pad_index')}",
+    },
+    "create_drum_rack": lambda a: {
+        "would_do": f"Create Drum Rack track '{a.get('name', 'Drum Rack')}'",
+        "target": f"Index {a.get('track_index', -1)}",
+    },
+    "import_audio_clip": lambda a: {
+        "would_do": f"Import audio clip '{a.get('file_path')}'",
+        "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
     },
     "set_clip_properties": lambda a: {
         "would_do": "Set clip properties",
@@ -125,10 +156,26 @@ DESTRUCTIVE_TOOLS = {
         "would_do": f"Write {len(a.get('points', []))} automation points",
         "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
     },
+    "analyze_and_warp": lambda a: {
+        "would_do": "Analyze metadata and set clip warp properties",
+        "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
+    },
+    "create_smart_folder": lambda a: {
+        "would_do": f"Create smart sample folder for {a.get('target_key')}",
+        "target": f"Base path {a.get('base_path', 'auto-detected')}",
+    },
     # ── Transport (destructive: they change playback/tempo/signature) ──
     "stop_all_clips": lambda a: {
         "would_do": "Stop all playing clips",
         "target": "All tracks",
+    },
+    "stop_clip": lambda a: {
+        "would_do": "Stop clip",
+        "target": f"Track {a.get('track_index')} / Slot {a.get('slot_index')}",
+    },
+    "stop_track_clips": lambda a: {
+        "would_do": "Stop all clips on track",
+        "target": f"Track {a.get('track_index')}",
     },
     "set_tempo": lambda a: {
         "would_do": f"Set tempo to {a.get('tempo')} BPM",
@@ -191,6 +238,43 @@ DESTRUCTIVE_TOOLS = {
         "would_do": f"Set crossfader to {a.get('position')}",
         "target": "Master crossfader",
     },
+    # ── Track/scene organization ──
+    "set_track_name": lambda a: {
+        "would_do": f"Rename track to '{a.get('name')}'",
+        "target": f"Track {a.get('track_index')}",
+    },
+    "set_track_color": lambda a: {
+        "would_do": f"Set track color to {a.get('color')}",
+        "target": f"Track {a.get('track_index')}",
+    },
+    "duplicate_track": lambda a: {
+        "would_do": "Duplicate track",
+        "target": f"Track {a.get('track_index')}",
+    },
+    "delete_track": lambda a: {
+        "would_do": "Delete track",
+        "target": f"Track {a.get('track_index')}",
+    },
+    "create_scene": lambda a: {
+        "would_do": "Create scene",
+        "target": f"Index {a.get('index', -1)}",
+    },
+    "set_scene_name": lambda a: {
+        "would_do": f"Rename scene to '{a.get('name')}'",
+        "target": f"Scene {a.get('scene_index')}",
+    },
+    "set_scene_color": lambda a: {
+        "would_do": f"Set scene color to {a.get('color')}",
+        "target": f"Scene {a.get('scene_index')}",
+    },
+    "duplicate_scene": lambda a: {
+        "would_do": "Duplicate scene",
+        "target": f"Scene {a.get('scene_index')}",
+    },
+    "delete_scene": lambda a: {
+        "would_do": "Delete scene",
+        "target": f"Scene {a.get('scene_index')}",
+    },
     "batch": lambda a: {
         "would_do": f"Execute {len(a.get('commands', []))} commands as single undo step",
         "target": ", ".join(c.get("command", "?") for c in a.get("commands", [])),
@@ -232,6 +316,53 @@ def _build_tools() -> list[Tool]:
             description="List all tracks in the current Ableton Live set with their devices, clips, and settings.",
             inputSchema={"type": "object", "properties": {}},
         ),
+        Tool(
+            name="select_track",
+            description="Select a track in Ableton Live's UI so subsequent browser/device operations target it.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index to select (0-based)"},
+                },
+            },
+        ),
+        Tool(
+            name="select_scene",
+            description="Select a scene in Ableton Live's session view.",
+            inputSchema={
+                "type": "object",
+                "required": ["scene_index"],
+                "properties": {
+                    "scene_index": {"type": "integer", "description": "Scene index to select (0-based)"},
+                },
+            },
+        ),
+        Tool(
+            name="select_clip",
+            description="Select a clip by track and session slot, focusing it in the detail view when Live exposes that setter.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index", "slot_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index containing the clip"},
+                    "slot_index": {"type": "integer", "description": "Session slot/scene index containing the clip"},
+                },
+            },
+        ),
+        Tool(
+            name="select_device",
+            description="Select a device on a track by index or name, useful before hotswap and browser operations.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index containing the device"},
+                    "device_index": {"type": "integer", "description": "Device index on the track"},
+                    "device_name": {"type": "string", "description": "Device name, exact or partial match"},
+                },
+            },
+        ),
         # ── Transport & Playback ──
         Tool(
             name="get_transport_state",
@@ -252,6 +383,29 @@ def _build_tools() -> list[Tool]:
             name="stop_all_clips",
             description="Stop all currently playing clips in the session view.",
             inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="stop_clip",
+            description="Stop a specific clip slot without stopping other clips.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index", "slot_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index containing the clip"},
+                    "slot_index": {"type": "integer", "description": "Session slot/scene index to stop"},
+                },
+            },
+        ),
+        Tool(
+            name="stop_track_clips",
+            description="Stop all clips playing on one track without stopping the rest of the set.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index to stop"},
+                },
+            },
         ),
         Tool(
             name="set_tempo",
@@ -437,6 +591,110 @@ def _build_tools() -> list[Tool]:
                         "description": "Insert position (-1 = end)",
                         "default": -1,
                     },
+                },
+            },
+        ),
+        Tool(
+            name="set_track_name",
+            description="Rename a track.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index", "name"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index to rename"},
+                    "name": {"type": "string", "description": "New track name"},
+                },
+            },
+        ),
+        Tool(
+            name="set_track_color",
+            description="Set a track color using Ableton's integer RGB color value.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index", "color"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index to recolor"},
+                    "color": {"type": "integer", "description": "Ableton color integer"},
+                },
+            },
+        ),
+        Tool(
+            name="duplicate_track",
+            description="Duplicate a track, including its devices and clips.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index to duplicate"},
+                },
+            },
+        ),
+        Tool(
+            name="delete_track",
+            description="Delete a track from the Live set.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track index to delete"},
+                },
+            },
+        ),
+        Tool(
+            name="create_scene",
+            description="Create a new scene in session view.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer", "description": "Insert position (-1 = end)", "default": -1},
+                    "name": {"type": "string", "description": "Scene name"},
+                    "color": {"type": "integer", "description": "Ableton color integer"},
+                },
+            },
+        ),
+        Tool(
+            name="set_scene_name",
+            description="Rename a scene.",
+            inputSchema={
+                "type": "object",
+                "required": ["scene_index", "name"],
+                "properties": {
+                    "scene_index": {"type": "integer", "description": "Scene index to rename"},
+                    "name": {"type": "string", "description": "New scene name"},
+                },
+            },
+        ),
+        Tool(
+            name="set_scene_color",
+            description="Set a scene color using Ableton's integer RGB color value.",
+            inputSchema={
+                "type": "object",
+                "required": ["scene_index", "color"],
+                "properties": {
+                    "scene_index": {"type": "integer", "description": "Scene index to recolor"},
+                    "color": {"type": "integer", "description": "Ableton color integer"},
+                },
+            },
+        ),
+        Tool(
+            name="duplicate_scene",
+            description="Duplicate a scene in session view.",
+            inputSchema={
+                "type": "object",
+                "required": ["scene_index"],
+                "properties": {
+                    "scene_index": {"type": "integer", "description": "Scene index to duplicate"},
+                },
+            },
+        ),
+        Tool(
+            name="delete_scene",
+            description="Delete a scene from the Live set.",
+            inputSchema={
+                "type": "object",
+                "required": ["scene_index"],
+                "properties": {
+                    "scene_index": {"type": "integer", "description": "Scene index to delete"},
                 },
             },
         ),
@@ -794,7 +1052,7 @@ def _build_tools() -> list[Tool]:
         ),
         Tool(
             name="load_sample_to_pad",
-            description="Load a browser-indexed sample file onto a Drum Rack pad by loading it as a Simpler then moving it into the pad chain. Requires a pad chain/template; create_drum_rack's default 808 kit provides pads 36-51. Pad index is MIDI note number: 36=C1 kick, 38=snare, 42=closed hat, 46=open hat.",
+            description="Load a browser-indexed sample file onto a Drum Rack pad by loading it as a Simpler then moving it into the pad chain. Optionally rename the pad with pad_name. Requires a pad chain/template; create_drum_rack's default 808 kit provides pads 36-51. Pad index is MIDI note number: 36=C1 kick, 38=snare, 42=closed hat, 46=open hat.",
             inputSchema={
                 "type": "object",
                 "required": ["track_index", "pad_index", "file_path"],
@@ -802,8 +1060,23 @@ def _build_tools() -> list[Tool]:
                     "track_index": {"type": "integer", "description": "Track containing the Drum Rack"},
                     "pad_index": {"type": "integer", "description": "MIDI note number for the Drum Rack pad. Use 36-51 for the visible 4x4 pad bank; 36=C1 kick.", "default": 36},
                     "file_path": {"type": "string", "description": "Absolute path to a sample file that Ableton Browser can find/index"},
+                    "pad_name": {"type": "string", "description": "Optional visible Drum Rack pad name to apply after loading, usually the Sample Librarian result name"},
                     "drum_rack_index": {"type": "integer", "description": "Device index of Drum Rack (default: 0)", "default": 0},
                     "reset_effects": {"type": "boolean", "description": "Delete all devices in the pad chain before moving the new Simpler. If false, only the first instrument device is replaced and later effects are kept.", "default": False},
+                },
+            },
+        ),
+        Tool(
+            name="set_drum_pad_name",
+            description="Rename a Drum Rack pad without loading a new sample. Use after librarian_search/librarian_load_to_pad when you need visible pad labels to match sample names or kit roles.",
+            inputSchema={
+                "type": "object",
+                "required": ["track_index", "pad_index", "pad_name"],
+                "properties": {
+                    "track_index": {"type": "integer", "description": "Track containing the Drum Rack"},
+                    "pad_index": {"type": "integer", "description": "MIDI note number for the Drum Rack pad. 36=C1 kick, 38=snare, 42=closed hat.", "default": 36},
+                    "pad_name": {"type": "string", "description": "Visible pad name to apply"},
+                    "drum_rack_index": {"type": "integer", "description": "Device index of Drum Rack (default: 0)", "default": 0},
                 },
             },
         ),
