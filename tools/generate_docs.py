@@ -48,11 +48,17 @@ TOOL_GROUPS: list[tuple[str, list[str]]] = [
         "get_live_state",
         "list_tracks",
         "get_transport_state",
+        "select_track",
+        "select_scene",
+        "select_clip",
+        "select_device",
     ]),
     ("Transport", [
         "start_playing",
         "stop_playing",
         "stop_all_clips",
+        "stop_clip",
+        "stop_track_clips",
         "set_tempo",
         "tap_tempo",
         "set_time_signature",
@@ -70,6 +76,17 @@ TOOL_GROUPS: list[tuple[str, list[str]]] = [
         "set_track_send",
         "set_track_monitoring",
         "set_crossfader",
+    ]),
+    ("Track & Scene Organization", [
+        "set_track_name",
+        "set_track_color",
+        "duplicate_track",
+        "delete_track",
+        "create_scene",
+        "set_scene_name",
+        "set_scene_color",
+        "duplicate_scene",
+        "delete_scene",
     ]),
     ("MIDI", [
         "create_midi_track",
@@ -105,6 +122,7 @@ TOOL_GROUPS: list[tuple[str, list[str]]] = [
     ("Drum Rack", [
         "create_drum_rack",
         "load_sample_to_pad",
+        "set_drum_pad_name",
         "inspect_drum_rack",
     ]),
     ("Advanced / Batching", [

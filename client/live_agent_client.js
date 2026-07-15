@@ -65,6 +65,20 @@ class LiveAgentClient {
   ping()                           { return this._send('ping'); }
   getLiveState()                   { return this._send('get_live_state'); }
   listTracks()                     { return this._send('list_tracks'); }
+  selectTrack(trackIndex)          { return this._send('select_track', { track_index: trackIndex }); }
+  selectScene(sceneIndex)          { return this._send('select_scene', { scene_index: sceneIndex }); }
+  selectClip(opts) {
+    return this._send('select_clip', {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+    });
+  }
+  selectDevice(opts) {
+    const payload = { track_index: opts.trackIndex };
+    if (opts.deviceIndex != null) payload.device_index = opts.deviceIndex;
+    if (opts.deviceName) payload.device_name = opts.deviceName;
+    return this._send('select_device', payload);
+  }
   createMidiTrack(index = -1)      { return this._send('create_midi_track', { index }); }
 
   // ── Transport & Playback ──────────────────────────────
@@ -73,6 +87,13 @@ class LiveAgentClient {
   startPlaying()                   { return this._send('start_playing'); }
   stopPlaying()                    { return this._send('stop_playing'); }
   stopAllClips()                   { return this._send('stop_all_clips'); }
+  stopClip(opts) {
+    return this._send('stop_clip', {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+    });
+  }
+  stopTrackClips(trackIndex)       { return this._send('stop_track_clips', { track_index: trackIndex }); }
   setTempo(tempo)                  { return this._send('set_tempo', { tempo }); }
   tapTempo()                       { return this._send('tap_tempo'); }
 
@@ -150,6 +171,47 @@ class LiveAgentClient {
     return this._send('set_crossfader', { position });
   }
 
+  // ── Track & Scene Organization ─────────────────────────────
+
+  setTrackName(trackIndex, name) {
+    return this._send('set_track_name', { track_index: trackIndex, name });
+  }
+
+  setTrackColor(trackIndex, color) {
+    return this._send('set_track_color', { track_index: trackIndex, color });
+  }
+
+  duplicateTrack(trackIndex) {
+    return this._send('duplicate_track', { track_index: trackIndex });
+  }
+
+  deleteTrack(trackIndex) {
+    return this._send('delete_track', { track_index: trackIndex });
+  }
+
+  createScene(opts = {}) {
+    const payload = { index: opts.index ?? -1 };
+    if (opts.name) payload.name = opts.name;
+    if (opts.color != null) payload.color = opts.color;
+    return this._send('create_scene', payload);
+  }
+
+  setSceneName(sceneIndex, name) {
+    return this._send('set_scene_name', { scene_index: sceneIndex, name });
+  }
+
+  setSceneColor(sceneIndex, color) {
+    return this._send('set_scene_color', { scene_index: sceneIndex, color });
+  }
+
+  duplicateScene(sceneIndex) {
+    return this._send('duplicate_scene', { scene_index: sceneIndex });
+  }
+
+  deleteScene(sceneIndex) {
+    return this._send('delete_scene', { scene_index: sceneIndex });
+  }
+
   createSessionClip(opts) {
     return this._send('create_session_clip', {
       track_index: opts.trackIndex,
@@ -224,6 +286,115 @@ class LiveAgentClient {
       query,
       max_results: maxResults,
     });
+  }
+
+  // ── Audio Clips ────────────────────────────────────────────
+
+  createAudioTrack(index = -1) {
+    return this._send('create_audio_track', { index });
+  }
+
+  importAudioClip(opts) {
+    return this._send('import_audio_clip', {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+      file_path: opts.filePath,
+    });
+  }
+
+  getClipInfo(opts) {
+    return this._send('get_clip_info', {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+    });
+  }
+
+  setClipProperties(opts) {
+    const { trackIndex, slotIndex, ...rest } = opts;
+    return this._send('set_clip_properties', {
+      track_index: trackIndex,
+      slot_index: slotIndex,
+      ...rest,
+    });
+  }
+
+  duplicateClip(opts) {
+    const payload = {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+    };
+    if (opts.destTrackIndex != null) payload.dest_track_index = opts.destTrackIndex;
+    if (opts.destSlotIndex != null) payload.dest_slot_index = opts.destSlotIndex;
+    return this._send('duplicate_clip', payload);
+  }
+
+  deleteClip(opts) {
+    return this._send('delete_clip', {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+    });
+  }
+
+  setClipWarp(opts) {
+    const payload = {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+    };
+    if (opts.warping != null) payload.warping = opts.warping;
+    if (opts.warpMode != null) payload.warp_mode = opts.warpMode;
+    return this._send('set_clip_warp', payload);
+  }
+
+  analyzeAndWarp(opts) {
+    const payload = {
+      track_index: opts.trackIndex,
+      slot_index: opts.slotIndex,
+      warp_mode: opts.warpMode ?? 4,
+    };
+    if (opts.bpm != null) payload.bpm = opts.bpm;
+    if (opts.key) payload.key = opts.key;
+    return this._send('analyze_and_warp', payload);
+  }
+
+  // ── Drum Rack ──────────────────────────────────────────────
+
+  createDrumRack(opts = {}) {
+    return this._send('create_drum_rack', {
+      track_index: opts.trackIndex ?? -1,
+      name: opts.name || 'Drum Rack',
+      kit_name: opts.kitName || '808 Core Kit.adg',
+      empty: opts.empty === true,
+    });
+  }
+
+  loadSampleToPad(opts) {
+    const payload = {
+      track_index: opts.trackIndex,
+      pad_index: opts.padIndex,
+      file_path: opts.filePath,
+      drum_rack_index: opts.drumRackIndex ?? 0,
+      reset_effects: opts.resetEffects === true,
+    };
+    if (opts.padName !== undefined) payload.pad_name = opts.padName;
+    return this._send('load_sample_to_pad', payload);
+  }
+
+  setDrumPadName(opts) {
+    return this._send('set_drum_pad_name', {
+      track_index: opts.trackIndex,
+      pad_index: opts.padIndex,
+      pad_name: opts.padName,
+      drum_rack_index: opts.drumRackIndex ?? 0,
+    });
+  }
+
+  inspectDrumRack(opts) {
+    const payload = {
+      track_index: opts.trackIndex,
+      drum_rack_index: opts.drumRackIndex ?? 0,
+    };
+    if (opts.padRange) payload.pad_range = opts.padRange;
+    return this._send('inspect_drum_rack', payload);
   }
 }
 

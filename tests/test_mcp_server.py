@@ -18,27 +18,38 @@ from mcp_server import call_tool
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-async def _call(name, **kwargs):
+async def _call(tool_name, **kwargs):
     """Call the MCP ``call_tool`` handler and parse the JSON response."""
-    result = await call_tool(name, kwargs)
+    result = await call_tool(tool_name, kwargs)
     return json.loads(result[0].text)
 
 
 # ── DESTRUCTIVE_TOOLS ────────────────────────────────────────────────────────
 
 EXPECTED_DESTRUCTIVE_TOOLS = {
+    "create_midi_track",
+    "create_audio_track",
+    "create_session_clip",
+    "duplicate_clip",
     "delete_clip",
     "clear_clip_notes",
     "set_parameter_value",
     "load_device",
     "load_sample_to_pad",
+    "set_drum_pad_name",
+    "create_drum_rack",
+    "import_audio_clip",
     "set_clip_properties",
     "set_clip_warp",
     "write_midi_notes",
     "write_clip_automation",
+    "analyze_and_warp",
+    "create_smart_folder",
     "batch",
     # Transport (destructive: change playback/tempo/signature)
     "stop_all_clips",
+    "stop_clip",
+    "stop_track_clips",
     "set_tempo",
     "tap_tempo",
     "set_time_signature",
@@ -55,6 +66,16 @@ EXPECTED_DESTRUCTIVE_TOOLS = {
     "set_track_send",
     "set_track_monitoring",
     "set_crossfader",
+    # Track/scene organization
+    "set_track_name",
+    "set_track_color",
+    "duplicate_track",
+    "delete_track",
+    "create_scene",
+    "set_scene_name",
+    "set_scene_color",
+    "duplicate_scene",
+    "delete_scene",
 }
 
 
@@ -160,6 +181,68 @@ async def test_batch_dry_run(mock_send):
     assert "create_session_clip" in data["target"]
     assert "write_midi_notes" in data["target"]
     mock_send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_create_midi_track_dry_run_preview(mock_send):
+    """``create_midi_track`` with ``dry_run=True`` previews without executing."""
+    data = await _call("create_midi_track", index=-1, dry_run=True)
+
+    assert data["dry_run"] is True
+    assert data["safe"] is True
+    assert "Create MIDI track" in data["would_do"]
+    assert "Index -1" in data["target"]
+    mock_send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_stop_clip_dry_run_preview(mock_send):
+    """``stop_clip`` with ``dry_run=True`` previews the target slot."""
+    data = await _call("stop_clip", track_index=2, slot_index=4, dry_run=True)
+
+    assert data["dry_run"] is True
+    assert "Stop clip" in data["would_do"]
+    assert "Track 2" in data["target"]
+    assert "Slot 4" in data["target"]
+    mock_send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_track_name_dry_run_preview(mock_send):
+    """``set_track_name`` with ``dry_run=True`` previews the rename."""
+    data = await _call("set_track_name", track_index=1, name="Bass", dry_run=True)
+
+    assert data["dry_run"] is True
+    assert "Bass" in data["would_do"]
+    assert "Track 1" in data["target"]
+    mock_send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_set_drum_pad_name_dry_run_preview(mock_send):
+    """``set_drum_pad_name`` with ``dry_run=True`` previews the pad rename."""
+    data = await _call("set_drum_pad_name", track_index=2, pad_index=36, pad_name="Kick C", dry_run=True)
+
+    assert data["dry_run"] is True
+    assert "Kick C" in data["would_do"]
+    assert "Pad 36" in data["target"]
+    mock_send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_load_sample_to_pad_forwards_pad_name(mock_send):
+    """``load_sample_to_pad`` forwards the optional pad_name field."""
+    await _call(
+        "load_sample_to_pad",
+        track_index=2,
+        pad_index=36,
+        file_path="/tmp/kick.wav",
+        pad_name="Kick C",
+    )
+
+    forwarded_command, forwarded_payload = mock_send.call_args[0]
+    assert forwarded_command == "load_sample_to_pad"
+    assert forwarded_payload["pad_name"] == "Kick C"
 
 
 # ── eval / exec env-var gating ───────────────────────────────────────────────
@@ -311,6 +394,19 @@ async def test_get_transport_state_is_not_destructive(mock_send):
     assert data == {"status": "ok"}
 
 
+@pytest.mark.asyncio
+async def test_select_track_is_not_destructive(mock_send):
+    """View-selection helpers are forwarded normally and do not get dry-run previews."""
+    data = await _call("select_track", track_index=4, dry_run=True)
+
+    mock_send.assert_called_once()
+    forwarded_command, forwarded_payload = mock_send.call_args[0]
+    assert forwarded_command == "select_track"
+    assert forwarded_payload["track_index"] == 4
+    assert "dry_run" not in forwarded_payload
+    assert data == {"status": "ok"}
+
+
 # ── Mixer commands ──────────────────────────────────────────────────────────
 
 
@@ -356,6 +452,30 @@ async def test_set_track_mute_dry_run_preview(mock_send):
     assert data["dry_run"] is True
     assert "True" in data["would_do"]
     assert "Track 3" in data["target"]
+    mock_send.assert_not_called()
+
+
+# ── Track/scene organization ────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_set_track_name_forwards(mock_send):
+    """``set_track_name`` forwards track_index and name."""
+    await _call("set_track_name", track_index=2, name="Lead")
+
+    forwarded_command, forwarded_payload = mock_send.call_args[0]
+    assert forwarded_command == "set_track_name"
+    assert forwarded_payload == {"track_index": 2, "name": "Lead"}
+
+
+@pytest.mark.asyncio
+async def test_delete_scene_dry_run_preview(mock_send):
+    """``delete_scene`` with ``dry_run=True`` previews the scene target."""
+    data = await _call("delete_scene", scene_index=1, dry_run=True)
+
+    assert data["dry_run"] is True
+    assert "Delete scene" in data["would_do"]
+    assert "Scene 1" in data["target"]
     mock_send.assert_not_called()
 
 

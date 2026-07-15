@@ -140,6 +140,34 @@ class LiveAgent(ControlSurface):
                     self._log_exception("subscribe accept failed")
                 break
 
+    def _handle_client(self, conn):
+        """Read newline-delimited request/response commands from one client."""
+        conn.settimeout(10)
+        buffer = b""
+        try:
+            while self._running:
+                chunk = conn.recv(65536)
+                if not chunk:
+                    break
+                buffer += chunk
+                while b"\n" in buffer:
+                    line, buffer = buffer.split(b"\n", 1)
+                    if not line.strip():
+                        continue
+                    try:
+                        request = json.loads(line.decode("utf-8"))
+                    except Exception as err:
+                        self._send_response(conn, {"ok": False, "error": "Invalid JSON: %s" % err})
+                        continue
+                    self._command_queue.put((request, conn))
+        except Exception:
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
     def _handle_subscriber(self, conn):
         """Read the subscribe handshake, register the connection, then keep it
         alive until the client disconnects or Live shuts down."""
@@ -175,31 +203,6 @@ class LiveAgent(ControlSurface):
                     continue
                 except Exception:
                     break
-        except Exception:
-            pass
-        finally:
-            try:
-                conn.close()
-            except Exception:
-                pass
-        conn.settimeout(10)
-        buffer = b""
-        try:
-            while self._running:
-                chunk = conn.recv(65536)
-                if not chunk:
-                    break
-                buffer += chunk
-                while b"\n" in buffer:
-                    line, buffer = buffer.split(b"\n", 1)
-                    if not line.strip():
-                        continue
-                    try:
-                        request = json.loads(line.decode("utf-8"))
-                    except Exception as err:
-                        self._send_response(conn, {"ok": False, "error": "Invalid JSON: %s" % err})
-                        continue
-                    self._command_queue.put((request, conn))
         except Exception:
             pass
         finally:
@@ -267,8 +270,34 @@ class LiveAgent(ControlSurface):
             return self._transport_state()
         if command == "list_tracks":
             return {"tracks": self._track_summaries()}
+        if command == "select_track":
+            return self._select_track(payload)
+        if command == "select_scene":
+            return self._select_scene(payload)
+        if command == "select_clip":
+            return self._select_clip(payload)
+        if command == "select_device":
+            return self._select_device(payload)
         if command == "create_midi_track":
             return self._create_midi_track(payload)
+        if command == "set_track_name":
+            return self._set_track_name(payload)
+        if command == "set_track_color":
+            return self._set_track_color(payload)
+        if command == "duplicate_track":
+            return self._duplicate_track(payload)
+        if command == "delete_track":
+            return self._delete_track(payload)
+        if command == "create_scene":
+            return self._create_scene(payload)
+        if command == "set_scene_name":
+            return self._set_scene_name(payload)
+        if command == "set_scene_color":
+            return self._set_scene_color(payload)
+        if command == "duplicate_scene":
+            return self._duplicate_scene(payload)
+        if command == "delete_scene":
+            return self._delete_scene(payload)
         if command == "create_session_clip":
             return self._create_session_clip(payload)
         if command == "write_midi_notes":
@@ -307,6 +336,8 @@ class LiveAgent(ControlSurface):
             return self._create_drum_rack(payload)
         if command == "load_sample_to_pad":
             return self._load_sample_to_pad(payload)
+        if command == "set_drum_pad_name":
+            return self._set_drum_pad_name(payload)
 
         if command == "inspect_drum_rack":
             return self._inspect_drum_rack(payload)
@@ -317,6 +348,10 @@ class LiveAgent(ControlSurface):
             return self._stop_playing(payload)
         if command == "stop_all_clips":
             return self._stop_all_clips(payload)
+        if command == "stop_clip":
+            return self._stop_clip(payload)
+        if command == "stop_track_clips":
+            return self._stop_track_clips(payload)
         if command == "set_tempo":
             return self._set_tempo(payload)
         if command == "tap_tempo":
@@ -481,6 +516,61 @@ class LiveAgent(ControlSurface):
         except Exception as e:
             return {"error": str(e), "type": type(e).__name__}
 
+    # ── Selection Control ───────────────────────────────────────
+
+    def _select_track(self, payload):
+        track = self._track_by_index(payload.get("track_index", 0))
+        self.song().view.selected_track = track
+        return {"selected_track_index": self._track_index(track), "name": track.name}
+
+    def _select_scene(self, payload):
+        scene = self._scene_by_index(payload.get("scene_index", 0))
+        self.song().view.selected_scene = scene
+        return {"selected_scene_index": self._scene_index(scene), "name": scene.name}
+
+    def _select_clip(self, payload):
+        track, slot = self._existing_track_and_slot(payload)
+        if not slot.has_clip:
+            raise Exception(
+                "No clip at track %s slot %s"
+                % (payload.get("track_index"), payload.get("slot_index"))
+            )
+        song = self.song()
+        song.view.selected_track = track
+        song.view.selected_scene = self._scene_by_index(payload.get("slot_index", 0))
+        try:
+            song.view.detail_clip = slot.clip
+        except Exception:
+            pass
+        return {
+            "selected_track_index": self._track_index(track),
+            "selected_scene_index": int(payload.get("slot_index", 0)),
+            "clip": self._clip_summary(slot.clip),
+        }
+
+    def _select_device(self, payload):
+        track = self._track_by_index(payload.get("track_index", 0))
+        device = self._find_by_index_or_name(
+            track.devices,
+            payload.get("device_index"),
+            payload.get("device_name"),
+            "device",
+        )
+        song = self.song()
+        song.view.selected_track = track
+        selected = False
+        try:
+            song.view.select_device(device)
+            selected = True
+        except Exception:
+            pass
+        return {
+            "selected_track_index": self._track_index(track),
+            "device": device.name,
+            "device_index": self._device_index(track, device),
+            "selected_device": selected,
+        }
+
     def _live_state(self):
         song = self.song()
         return {
@@ -488,8 +578,9 @@ class LiveAgent(ControlSurface):
             "tempo": song.tempo,
             "is_playing": song.is_playing,
             "tracks": self._track_summaries(),
-            "scenes": [{"index": i, "name": scene.name} for i, scene in enumerate(song.scenes)],
+            "scenes": [self._scene_summary(i, scene) for i, scene in enumerate(song.scenes)],
             "selected_track_index": self._track_index(song.view.selected_track),
+            "selected_scene_index": self._scene_index(self._safe_attr(song.view, "selected_scene", None)),
         }
 
     # ── Transport & Playback Control ──────────────────────────────
@@ -522,6 +613,42 @@ class LiveAgent(ControlSurface):
         song = self.song()
         song.stop_all_clips()
         return {"stopped_all_clips": True}
+
+    def _stop_clip(self, payload):
+        _track, slot = self._existing_track_and_slot(payload)
+        if not slot.has_clip:
+            return {
+                "stopped_clip": False,
+                "track_index": payload.get("track_index", 0),
+                "slot_index": int(payload.get("slot_index", 0)),
+                "reason": "empty_slot",
+            }
+        slot.stop()
+        return {
+            "stopped_clip": True,
+            "track_index": payload.get("track_index", 0),
+            "slot_index": int(payload.get("slot_index", 0)),
+        }
+
+    def _stop_track_clips(self, payload):
+        track = self._track_by_index(payload.get("track_index", 0))
+        stopped = False
+        if hasattr(track, "stop_all_clips"):
+            track.stop_all_clips()
+            stopped = True
+        else:
+            for slot in getattr(track, "clip_slots", []):
+                if self._safe_attr(slot, "has_clip", False):
+                    try:
+                        slot.stop()
+                        stopped = True
+                    except Exception:
+                        pass
+        return {
+            "stopped_track_clips": stopped,
+            "track_index": self._track_index(track),
+            "track_name": track.name,
+        }
 
     def _set_tempo(self, payload):
         if "tempo" not in payload:
@@ -846,6 +973,19 @@ class LiveAgent(ControlSurface):
 
     def _track_summary(self, index, track):
         track_type = "midi" if self._safe_attr(track, "has_midi_input", False) else "audio"
+        mixer = self._safe_attr(track, "mixer_device", None)
+        volume = self._safe_attr(self._safe_attr(mixer, "volume", None), "value", None) if mixer else None
+        pan = self._safe_attr(self._safe_attr(mixer, "panning", None), "value", None) if mixer else None
+        sends = []
+        if mixer:
+            for send_index, send in enumerate(self._safe_attr(mixer, "sends", [])):
+                sends.append({
+                    "index": send_index,
+                    "name": self._safe_attr(send, "name", ""),
+                    "value": self._safe_attr(send, "value", None),
+                    "min": self._safe_attr(send, "min", None),
+                    "max": self._safe_attr(send, "max", None),
+                })
         devices = []
         for device_index, device in enumerate(getattr(track, "devices", [])):
             devices.append(
@@ -888,8 +1028,21 @@ class LiveAgent(ControlSurface):
             "arm": self._safe_attr(track, "arm", False),
             "mute": self._safe_attr(track, "mute", False),
             "solo": self._safe_attr(track, "solo", False),
+            "color": self._safe_attr(track, "color", None),
+            "volume": volume,
+            "pan": pan,
+            "sends": sends,
+            "monitoring": self._safe_attr(track, "current_monitoring_state", None),
+            "crossfade_assign": self._safe_attr(mixer, "crossfade_assign", None) if mixer else None,
             "devices": devices,
             "clip_slots": clip_slots,
+        }
+
+    def _scene_summary(self, index, scene):
+        return {
+            "index": index,
+            "name": scene.name,
+            "color": self._safe_attr(scene, "color", None),
         }
 
     def _clip_summary(self, clip):
@@ -906,6 +1059,73 @@ class LiveAgent(ControlSurface):
         index = int(payload.get("index", -1))
         self.song().create_midi_track(index)
         return {"tracks": self._track_summaries()}
+
+    def _set_track_name(self, payload):
+        if "name" not in payload:
+            raise Exception("set_track_name requires a 'name' parameter")
+        track = self._track_by_index(payload.get("track_index", 0))
+        track.name = str(payload.get("name"))
+        return {"track_index": self._track_index(track), "name": track.name}
+
+    def _set_track_color(self, payload):
+        if "color" not in payload:
+            raise Exception("set_track_color requires a 'color' parameter")
+        track = self._track_by_index(payload.get("track_index", 0))
+        track.color = int(payload.get("color"))
+        return {"track_index": self._track_index(track), "color": self._safe_attr(track, "color", None)}
+
+    def _duplicate_track(self, payload):
+        index = int(payload.get("track_index", 0))
+        self._track_by_index(index)
+        self.song().duplicate_track(index)
+        new_index = min(index + 1, len(self.song().tracks) - 1)
+        return {"source_track_index": index, "new_track_index": new_index, "track": self._track_summary(new_index, self.song().tracks[new_index])}
+
+    def _delete_track(self, payload):
+        index = int(payload.get("track_index", 0))
+        track = self._track_by_index(index)
+        name = track.name
+        self.song().delete_track(index)
+        return {"deleted": True, "track_index": index, "name": name}
+
+    def _create_scene(self, payload):
+        index = int(payload.get("index", -1))
+        self.song().create_scene(index)
+        actual_index = index if index >= 0 else len(self.song().scenes) - 1
+        scene = self.song().scenes[actual_index]
+        if payload.get("name"):
+            scene.name = str(payload.get("name"))
+        if payload.get("color") is not None:
+            scene.color = int(payload.get("color"))
+        return {"scene": self._scene_summary(actual_index, scene)}
+
+    def _set_scene_name(self, payload):
+        if "name" not in payload:
+            raise Exception("set_scene_name requires a 'name' parameter")
+        scene = self._scene_by_index(payload.get("scene_index", 0))
+        scene.name = str(payload.get("name"))
+        return {"scene_index": self._scene_index(scene), "name": scene.name}
+
+    def _set_scene_color(self, payload):
+        if "color" not in payload:
+            raise Exception("set_scene_color requires a 'color' parameter")
+        scene = self._scene_by_index(payload.get("scene_index", 0))
+        scene.color = int(payload.get("color"))
+        return {"scene_index": self._scene_index(scene), "color": self._safe_attr(scene, "color", None)}
+
+    def _duplicate_scene(self, payload):
+        index = int(payload.get("scene_index", 0))
+        self._scene_by_index(index)
+        self.song().duplicate_scene(index)
+        new_index = min(index + 1, len(self.song().scenes) - 1)
+        return {"source_scene_index": index, "new_scene_index": new_index, "scene": self._scene_summary(new_index, self.song().scenes[new_index])}
+
+    def _delete_scene(self, payload):
+        index = int(payload.get("scene_index", 0))
+        scene = self._scene_by_index(index)
+        name = scene.name
+        self.song().delete_scene(index)
+        return {"deleted": True, "scene_index": index, "name": name}
 
     def _create_session_clip(self, payload):
         track, slot = self._track_and_slot(payload)
@@ -1226,12 +1446,30 @@ class LiveAgent(ControlSurface):
         self._ensure_scene(slot_index)
         return track, track.clip_slots[slot_index]
 
+    def _existing_track_and_slot(self, payload):
+        track = self._track_by_index(payload.get("track_index", 0))
+        slot_index = int(payload.get("slot_index", 0))
+        clip_slots = list(getattr(track, "clip_slots", []))
+        if slot_index < 0 or slot_index >= len(clip_slots):
+            raise Exception(
+                "Slot index out of range: %s (track has %s slots)"
+                % (slot_index, len(clip_slots))
+            )
+        return track, clip_slots[slot_index]
+
     def _track_by_index(self, index):
         tracks = list(self.song().tracks)
         index = int(index)
         if index < 0 or index >= len(tracks):
             raise Exception("Track index out of range: %s" % index)
         return tracks[index]
+
+    def _scene_by_index(self, index):
+        scenes = list(self.song().scenes)
+        index = int(index)
+        if index < 0 or index >= len(scenes):
+            raise Exception("Scene index out of range: %s" % index)
+        return scenes[index]
 
     def _ensure_scene(self, slot_index):
         song = self.song()
@@ -1280,6 +1518,20 @@ class LiveAgent(ControlSurface):
     def _track_index(self, track):
         for index, candidate in enumerate(self.song().tracks):
             if candidate == track:
+                return index
+        return None
+
+    def _scene_index(self, scene):
+        if scene is None:
+            return None
+        for index, candidate in enumerate(self.song().scenes):
+            if candidate == scene:
+                return index
+        return None
+
+    def _device_index(self, track, device):
+        for index, candidate in enumerate(getattr(track, "devices", [])):
+            if candidate == device:
                 return index
         return None
 
@@ -1610,6 +1862,42 @@ class LiveAgent(ControlSurface):
 
         return visit(root)
 
+    def _apply_drum_pad_name(self, pad, chains, pad_name):
+        """Best-effort rename for Live drum pads.
+
+        Different Live versions expose the visible Drum Rack pad label via
+        either DrumPad.name or the first pad chain name, so try both.
+        """
+        name = str(pad_name or "").strip()
+        result = {
+            "requested": name,
+            "applied": False,
+            "targets": [],
+            "errors": [],
+        }
+        if not name:
+            result["visible_name"] = str(self._safe_attr(pad, "name", ""))
+            return result
+
+        try:
+            pad.name = name
+            result["targets"].append("pad")
+        except Exception as e:
+            result["errors"].append("pad.name: %s" % str(e))
+
+        if chains is not None and len(chains) > 0:
+            try:
+                chains[0].name = name
+                result["targets"].append("chain")
+            except Exception as e:
+                result["errors"].append("chain.name: %s" % str(e))
+
+        result["visible_name"] = str(self._safe_attr(pad, "name", ""))
+        if chains is not None and len(chains) > 0:
+            result["chain_name"] = str(self._safe_attr(chains[0], "name", ""))
+        result["applied"] = bool(result["targets"])
+        return result
+
     def _load_sample_to_pad(self, payload):
         """Load a browser-indexed sample onto a Drum Rack pad."""
         import os
@@ -1619,6 +1907,7 @@ class LiveAgent(ControlSurface):
         pad_index = int(payload.get("pad_index", payload.get("note", 36)))
         file_path = payload["file_path"]
         reset_effects = payload.get("reset_effects", False)
+        pad_name = payload.get("pad_name")
 
         if not os.path.isfile(file_path):
             raise Exception("File not found: %s" % file_path)
@@ -1751,6 +2040,13 @@ class LiveAgent(ControlSurface):
                 except Exception:
                     pass
 
+        pad_name_result = None
+        if pad_name:
+            pad = drum_pads[pad_index]
+            chains = self._safe_attr(pad, "chains", None)
+            pad_name_result = self._apply_drum_pad_name(pad, chains, pad_name)
+
+        final_pad_name = str(self._safe_attr(drum_pads[pad_index], "name", ""))
         return {
             "track_index": track_index,
             "pad_index": pad_index,
@@ -1759,6 +2055,46 @@ class LiveAgent(ControlSurface):
             "method": "browser_load_move_device",
             "was_empty_pad": was_empty,
             "reset_effects": reset_effects,
+            "pad_name": final_pad_name,
+            "requested_pad_name": str(pad_name) if pad_name else None,
+            "pad_name_set": bool(pad_name_result and pad_name_result.get("applied")),
+            "pad_name_result": pad_name_result,
+        }
+
+    def _set_drum_pad_name(self, payload):
+        """Rename a Drum Rack pad without loading a sample."""
+        track_index = int(payload["track_index"])
+        drum_rack_index = int(payload.get("drum_rack_index", 0))
+        pad_index = int(payload.get("pad_index", payload.get("note", 36)))
+        pad_name = payload["pad_name"]
+
+        song = self.song()
+        track = song.tracks[track_index]
+
+        if drum_rack_index >= len(track.devices):
+            raise Exception("No device at index %d on track %d" % (drum_rack_index, track_index))
+        drum_rack = track.devices[drum_rack_index]
+
+        drum_pads = self._safe_attr(drum_rack, "drum_pads", None)
+        if drum_pads is None:
+            raise Exception("No drum_pads on device (not a Drum Rack?)")
+        if pad_index < 0 or pad_index >= len(drum_pads):
+            raise Exception("Pad index out of range: %d" % pad_index)
+
+        pad = drum_pads[pad_index]
+        chains = self._safe_attr(pad, "chains", None)
+        name_result = self._apply_drum_pad_name(pad, chains, pad_name)
+        if not name_result.get("applied"):
+            raise Exception("Could not set drum pad name: %s" % "; ".join(name_result.get("errors", [])))
+
+        return {
+            "track_index": track_index,
+            "drum_rack_index": drum_rack_index,
+            "pad_index": pad_index,
+            "pad_name": name_result.get("visible_name", str(self._safe_attr(pad, "name", ""))),
+            "requested_pad_name": str(pad_name),
+            "pad_name_set": True,
+            "pad_name_result": name_result,
         }
 
     def _inspect_drum_rack(self, payload):
@@ -1789,6 +2125,7 @@ class LiveAgent(ControlSurface):
                     }
                     if has_chain:
                         chain = chains[0]
+                        pad_info["chain_name"] = str(self._safe_attr(chain, "name", ""))
                         chain_devices = self._safe_attr(chain, "devices", [])
                         devs = []
                         for cd in chain_devices:
